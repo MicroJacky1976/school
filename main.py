@@ -7,6 +7,13 @@
 """
 
 import os
+import sys
+
+# PyInstaller 打包运行时，切换工作目录到解包目录（sys._MEIPASS），
+# 使 images/ 等相对路径在单文件 exe 中也能找到
+if hasattr(sys, "_MEIPASS"):
+    os.chdir(sys._MEIPASS)
+
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 
 # ── 应用图标 ──────────────────────────────────────────────
