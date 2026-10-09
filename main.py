@@ -26,7 +26,8 @@ from map_data import POIS
 # ── 窗口设置 ──────────────────────────────────────────────
 WIDTH = 1096
 HEIGHT = 800
-TITLE = "互动地图"
+TITLE = "文一街小学"
+ICON = "images/logo.png"  # pgzero 读取此属性，在窗口创建前设置窗口图标
 
 # ── 字体 ───────────────────────────────────────────────────
 FONT_NAME = "stheiti.ttc"
@@ -375,12 +376,9 @@ def _set_dock_icon_via_ctypes():
 def draw():
     global _window_icon_set
     if not _window_icon_set:
-        try:
-            icon_img = pygame.image.load(_ICON_PATH)
-            pygame.display.set_icon(icon_img)
+        # macOS Dock 图标需在窗口创建后通过 AppKit 设置（Windows 图标已在启动前设置）
+        if sys.platform == "darwin":
             _set_dock_icon_via_ctypes()
-        except Exception:
-            pass
         _window_icon_set = True
     screen.clear()
     draw_map()

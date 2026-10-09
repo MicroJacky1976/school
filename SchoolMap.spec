@@ -28,6 +28,7 @@ exe = EXE(
     [],
     name='SchoolMap',
     debug=False,
+    icon='images\\logo.ico',
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
