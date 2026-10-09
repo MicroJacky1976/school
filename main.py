@@ -75,14 +75,33 @@ def draw_poi_markers():
     for poi in POIS:
         x, y = poi["x"], poi["y"]
         is_hovered = (poi is hovered_poi) or (poi is panel_poi)
+        # 悬停时发光外圈
         if is_hovered:
             for r in range(6, 0, -1):
                 alpha = 20 + r * 6
                 pygame.draw.circle(
                     screen.surface, (*COLOR_POI_GLOW[:3], alpha),
-                    (x, y), 18 + r * 3, 2
+                    (x, y), 30 + r * 5, 3
                 )
-        pygame.draw.circle(screen.surface, (0, 0, 0), (x, y), 2)
+        # POI 标记：白色描边 + 金铜色实心圆
+        pygame.draw.circle(screen.surface, (255, 255, 255), (x, y), 12)  # 白色描边
+        pygame.draw.circle(screen.surface, COLOR_POI, (x, y), 8)       # 金铜色实心
+
+        # POI 名称（标记下方，白色描边+深色填充防地图背景干扰）
+        font = _get_font(14)
+        text = poi["name"]
+        tw, th = font.size(text)
+        tx = x - tw // 2
+        ty = y + 16
+        # 深色半透明背景条（让文字在任何底色上可读）
+        bg_rect = Rect(tx - 6, ty - 1, tw + 12, th + 4)
+        bg_surf = pygame.Surface((bg_rect.w, bg_rect.h), pygame.SRCALPHA)
+        bg_surf.fill((20, 18, 30, 180))
+        screen.surface.blit(bg_surf, (bg_rect.x, bg_rect.y))
+        # 白色边框
+        pygame.draw.rect(screen.surface, (255, 255, 255), bg_rect, 1, border_radius=3)
+        # 文字
+        _render_text_line(font, text, tx, ty, COLOR_TITLE)
 
 # ── 面板位置计算 ──────────────────────────────────────────
 def _panel_rect_for(poi):
