@@ -33,9 +33,9 @@ COLOR_TEXT       = (220, 215, 200)    # 米白文字
 COLOR_TITLE      = (255, 200, 80)     # 金色标题
 COLOR_CLOSE_BTN  = (180, 60, 50)      # 关闭按钮
 
-# 面板尺寸（和之前一致，但位置会紧贴 POI）
-PANEL_W = 630
-PANEL_H = 510
+# 面板尺寸
+PANEL_W = 520
+PANEL_H = 440
 
 # ── 状态 ──────────────────────────────────────────────────
 mouse_pos = (0, 0)
@@ -105,17 +105,32 @@ def draw_poi_markers():
 
 # ── 面板位置计算 ──────────────────────────────────────────
 def _panel_rect_for(poi):
-    """根据 POI 坐标计算面板矩形（贴在 POI 旁边，自动靠边）"""
+    """根据 POI 坐标计算面板矩形（贴在旁边，智能选方向）"""
     pw, ph = PANEL_W, PANEL_H
-    px, py = poi["x"] + 28, poi["y"] - 20
-    # 水平方向：优先放 POI 右边，不够就放左边
-    if px + pw > WIDTH - 10:
-        px = poi["x"] - pw - 28
-    # 垂直方向：确保不超出窗口
+    gap = 20
+    px, py = 0, 0
+
+    # 先尝试右边
+    right_x = poi["x"] + gap
+    if right_x + pw <= WIDTH - 10:
+        px = right_x
+    # 再尝试左边
+    elif poi["x"] - gap - pw >= 10:
+        px = poi["x"] - gap - pw
+    # 左右都放不下 → 居中
+    else:
+        px = (WIDTH - pw) // 2
+
+    # 垂直方向：优先对齐 POI 顶部，根据上方空间决定放 POI 上方还是下方
+    # 先尝试放下方
+    py = poi["y"] + gap
     if py + ph > HEIGHT - 10:
-        py = HEIGHT - 10 - ph
+        # 下方不够 → 放上方
+        py = poi["y"] - gap - ph
     if py < 10:
-        py = 10
+        # 上方也不够 → 贴底
+        py = max(10, HEIGHT - 10 - ph)
+
     return Rect(px, py, pw, ph)
 
 # ── 简介面板 ──────────────────────────────────────────────
@@ -198,7 +213,7 @@ def _load_poi_image(poi):
         return None
 
 def _draw_intro_content(px, py, pw, ph):
-    """绘制古卷轴风格的简介内容"""
+    """绘制古卷轴风格的简介内容（图片在上，文字在下）"""
     content_rect = Rect(px + 16, py + 50, pw - 32, ph - 70)
     scroll_surf = pygame.Surface((content_rect.w, content_rect.h), pygame.SRCALPHA)
     pygame.draw.rect(scroll_surf, (60, 52, 40, 230), (0, 0, content_rect.w, content_rect.h),
@@ -216,13 +231,33 @@ def _draw_intro_content(px, py, pw, ph):
                      fontname=FONT_NAME,
                      fontsize=13, color=(180, 160, 100))
 
-    max_width = pw - 60
-    line_height = 22
-    text_x = px + 30
-    text_y = py + 78
-
     font = _get_font(16)
     text_color = (230, 215, 180)
+
+    # ── 先画图片（占上半部分） ──
+    text_y_start = py + 78
+    poi_img = _load_poi_image(panel_poi)
+    if poi_img:
+        img_w, img_h = poi_img.get_size()
+        max_img_w = pw - 60
+        # 图片可用空间：内容区上半部分的大部分
+        max_img_h = (ph - 70) // 2 - 10
+        scale = min(max_img_w / img_w, max_img_h / img_h, 1.0)
+        d_w = int(img_w * scale)
+        d_h = int(img_h * scale)
+        scaled = pygame.transform.smoothscale(poi_img, (d_w, d_h))
+        img_x = px + (pw - d_w) // 2
+        img_y = text_y_start
+        screen.surface.blit(scaled, (img_x, img_y))
+        # 图片与文字之间留 12px 间距
+        text_y_start = img_y + d_h + 12
+
+    # ── 再画文字（下半部分） ──
+    max_width = pw - 60
+    line_height = 20
+    text_x = px + 30
+    text_y = text_y_start
+    content_bottom = py + 50 + (ph - 70) - 8
 
     for paragraph in panel_poi["intro"].split("\n"):
         if not paragraph:
@@ -234,27 +269,16 @@ def _draw_intro_content(px, py, pw, ph):
             if font.size(test_line)[0] > max_width:
                 _render_text_line(font, line, text_x, text_y, text_color)
                 text_y += line_height
+                if text_y > content_bottom:
+                    return  # 超出可见区域，停止绘制
                 line = ch
             else:
                 line = test_line
         if line:
             _render_text_line(font, line, text_x, text_y, text_color)
             text_y += line_height
-
-    poi_img = _load_poi_image(panel_poi)
-    if poi_img:
-        img_w, img_h = poi_img.get_size()
-        max_img_w = pw - 60
-        content_bottom = py + 50 + (ph - 70) - 8
-        avail_h = content_bottom - text_y - 6
-        if avail_h > 20:
-            scale = min(max_img_w / img_w, avail_h / img_h, 1.0)
-            d_w = int(img_w * scale)
-            d_h = int(img_h * scale)
-            scaled = pygame.transform.smoothscale(poi_img, (d_w, d_h))
-            img_x = px + (pw - d_w) // 2
-            img_y = text_y + 6
-            screen.surface.blit(scaled, (img_x, img_y))
+            if text_y > content_bottom:
+                return
 
 # ── 逻辑更新 ──────────────────────────────────────────────
 def update():
