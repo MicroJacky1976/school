@@ -24,6 +24,14 @@ TITLE = "互动地图"
 # ── 字体 ───────────────────────────────────────────────────
 FONT_NAME = "stheiti.ttc"
 
+# 字体候选文件，按顺序尝试（跨平台：macOS 项目符号链接 → Windows 系统字体 → macOS 系统字体）
+_FONT_CANDIDATES = [
+    os.path.join("fonts", FONT_NAME),                 # macOS：项目内符号链接
+    os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts", "msyh.ttc"),    # Windows：微软雅黑
+    os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts", "simhei.ttf"),  # Windows：黑体
+    "/System/Library/Fonts/STHeiti Light.ttc",        # macOS：系统字体
+]
+
 # ── 现代简约 UI 颜色 ──────────────────────────────────────
 COLOR_POI        = (70, 130, 220)     # 现代蓝 POI 标记
 COLOR_POI_GLOW   = (100, 160, 240)    # POI 发光色
@@ -166,10 +174,7 @@ def draw_content_panel():
 
     if not has_img:
         # 无图片：顶部标题 + 一条分隔线
-        screen.draw.text(title_text,
-                         topleft=(px + 24, py + 20),
-                         fontname=FONT_NAME,
-                         fontsize=22, color=title_color)
+        _render_text_line(_get_font(22), title_text, px + 24, py + 20, title_color)
         # 底部一条细分隔线
         line_rect = Rect(px + 24, py + 60, pw - 48, 1)
         pygame.draw.rect(screen.surface, COLOR_PANEL_BORDER, line_rect)
@@ -181,14 +186,12 @@ def draw_content_panel():
     _draw_intro_content(px, py, pw, ph, info, has_img)
 
 def _get_font(size):
-    font_path = os.path.join("fonts", FONT_NAME)
-    try:
-        return pygame.font.Font(font_path, size)
-    except (FileNotFoundError, pygame.error):
+    for font_path in _FONT_CANDIDATES:
         try:
-            return pygame.font.SysFont(FONT_NAME.replace(".ttc", ""), size)
-        except pygame.error:
-            return pygame.font.Font(None, size)
+            return pygame.font.Font(font_path, size)
+        except (FileNotFoundError, OSError, pygame.error):
+            continue
+    return pygame.font.Font(None, size)
 
 def _render_text_line(font, text, x, y, color):
     surf = font.render(text, True, color)
@@ -314,10 +317,7 @@ def _draw_intro_content(px, py, pw, ph, info, has_img):
         cur_y += final_dh + 16  # 图片与标题间距 16px
 
         # 标题（深色，无装饰）
-        screen.draw.text(panel_poi["name"],
-                         topleft=(px + padding, cur_y),
-                         fontname=FONT_NAME,
-                         fontsize=22, color=COLOR_TITLE)
+        _render_text_line(_get_font(22), panel_poi["name"], px + padding, cur_y, COLOR_TITLE)
         cur_y += 30  # 标题高度约 26px + 间距 4px
     else:
         # 无图片：cur_y 在标题下方（已预留 60px 空间）
