@@ -31,8 +31,6 @@ COLOR_PANEL_BG   = (255, 255, 255, 245)  # 半透明白色卡片背景
 COLOR_PANEL_BORDER = (220, 225, 230)  # 浅灰细边框
 COLOR_TEXT       = (50, 55, 65)       # 深色正文
 COLOR_TITLE      = (30, 35, 45)       # 深色标题
-COLOR_CLOSE_BTN  = (160, 165, 175)    # 灰色关闭按钮
-COLOR_CLOSE_BTN_HOVER = (80, 85, 95)  # 悬停深色
 COLOR_MUTED      = (130, 138, 150)    # 次要文字色
 
 # 面板尺寸（PANEL_W 固定，PANEL_H 根据内容动态计算）
@@ -176,22 +174,9 @@ def draw_content_panel():
         line_rect = Rect(px + 24, py + 60, pw - 48, 1)
         pygame.draw.rect(screen.surface, COLOR_PANEL_BORDER, line_rect)
 
-    # 关闭按钮（圆角灰色圆形）
-    close_rect = Rect(px + pw - 44, py + 12, 32, 32)
-    panel_close_rect = close_rect
-    # 圆形背景
-    close_bg = pygame.Surface((32, 32), pygame.SRCALPHA)
-    close_bg.fill((0, 0, 0, 0))
-    pygame.draw.circle(close_bg, (0, 0, 0, 18), (16, 16), 14)
-    screen.surface.blit(close_bg, (close_rect.x, close_rect.y))
-    # 叉号
-    pad = 10
-    pygame.draw.line(screen.surface, COLOR_CLOSE_BTN,
-                     (close_rect.left + pad, close_rect.top + pad),
-                     (close_rect.right - pad, close_rect.bottom - pad), 2)
-    pygame.draw.line(screen.surface, COLOR_CLOSE_BTN,
-                     (close_rect.right - pad, close_rect.top + pad),
-                     (close_rect.left + pad, close_rect.bottom - pad), 2)
+    # 关闭按钮（鼠标离开自动关闭，无需手动按钮）
+    # panel_close_rect 保留给点击逻辑兼容性
+    panel_close_rect = None
 
     _draw_intro_content(px, py, pw, ph, info, has_img)
 
