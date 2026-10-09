@@ -24,14 +24,16 @@ TITLE = "互动地图"
 # ── 字体 ───────────────────────────────────────────────────
 FONT_NAME = "stheiti.ttc"
 
-# ── 游戏 UI 颜色 ──────────────────────────────────────────
-COLOR_POI        = (220, 180, 60)     # 金铜色 POI 标记
-COLOR_POI_GLOW   = (255, 200, 80)     # POI 发光色
-COLOR_PANEL_BG   = (25, 22, 40, 240)  # 深色面板背景
-COLOR_PANEL_BORDER = (160, 130, 50)   # 面板金色边框
-COLOR_TEXT       = (220, 215, 200)    # 米白文字
-COLOR_TITLE      = (255, 200, 80)     # 金色标题
-COLOR_CLOSE_BTN  = (180, 60, 50)      # 关闭按钮
+# ── 现代简约 UI 颜色 ──────────────────────────────────────
+COLOR_POI        = (70, 130, 220)     # 现代蓝 POI 标记
+COLOR_POI_GLOW   = (100, 160, 240)    # POI 发光色
+COLOR_PANEL_BG   = (255, 255, 255, 245)  # 半透明白色卡片背景
+COLOR_PANEL_BORDER = (220, 225, 230)  # 浅灰细边框
+COLOR_TEXT       = (50, 55, 65)       # 深色正文
+COLOR_TITLE      = (30, 35, 45)       # 深色标题
+COLOR_CLOSE_BTN  = (160, 165, 175)    # 灰色关闭按钮
+COLOR_CLOSE_BTN_HOVER = (80, 85, 95)  # 悬停深色
+COLOR_MUTED      = (130, 138, 150)    # 次要文字色
 
 # 面板尺寸（PANEL_W 固定，PANEL_H 根据内容动态计算）
 PANEL_W = 560
@@ -70,36 +72,33 @@ def draw_rounded_rect(surf, rect, color, radius=8, border_color=None, border_wid
 
 # ── POI 标记绘制 ──────────────────────────────────────────
 def draw_poi_markers():
-    """在地图上绘制兴趣点标记（黑色实心小圆）"""
+    """在地图上绘制现代化兴趣点标记"""
     for poi in POIS:
         x, y = poi["x"], poi["y"]
         is_hovered = (poi is hovered_poi) or (poi is panel_poi)
-        # 悬停时发光外圈
-        if is_hovered:
-            for r in range(6, 0, -1):
-                alpha = 20 + r * 6
-                pygame.draw.circle(
-                    screen.surface, (*COLOR_POI_GLOW[:3], alpha),
-                    (x, y), 30 + r * 5, 3
-                )
-        # POI 标记：白色描边 + 金铜色实心圆
-        pygame.draw.circle(screen.surface, (255, 255, 255), (x, y), 12)  # 白色描边
-        pygame.draw.circle(screen.surface, COLOR_POI, (x, y), 8)       # 金铜色实心
 
-        # POI 名称（标记下方，白色描边+深色填充防地图背景干扰）
-        font = _get_font(14)
+        # 悬停时柔和的脉冲光环
+        if is_hovered:
+            for r, alpha in [(24, 30), (18, 50), (13, 80)]:
+                glow = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
+                pygame.draw.circle(glow, (*COLOR_POI_GLOW, alpha), (r, r), r)
+                screen.surface.blit(glow, (x - r, y - r))
+
+        # POI 标记：外层白色、内层现代蓝
+        pygame.draw.circle(screen.surface, (255, 255, 255), (x, y), 10)
+        pygame.draw.circle(screen.surface, COLOR_POI, (x, y), 7)
+
+        # POI 名称（标记下方，现代简约标签）
+        font = _get_font(13)
         text = poi["name"]
         tw, th = font.size(text)
         tx = x - tw // 2
-        ty = y + 16
-        # 深色半透明背景条（让文字在任何底色上可读）
-        bg_rect = Rect(tx - 6, ty - 1, tw + 12, th + 4)
+        ty = y + 14
+        # 白色半透明背景标签
+        bg_rect = Rect(tx - 8, ty - 1, tw + 16, th + 5)
         bg_surf = pygame.Surface((bg_rect.w, bg_rect.h), pygame.SRCALPHA)
-        bg_surf.fill((20, 18, 30, 180))
+        pygame.draw.rect(bg_surf, (255, 255, 255, 220), (0, 0, bg_rect.w, bg_rect.h), border_radius=4)
         screen.surface.blit(bg_surf, (bg_rect.x, bg_rect.y))
-        # 白色边框
-        pygame.draw.rect(screen.surface, (255, 255, 255), bg_rect, 1, border_radius=3)
-        # 文字
         _render_text_line(font, text, tx, ty, COLOR_TITLE)
 
 # ── 面板位置计算 ──────────────────────────────────────────
@@ -132,9 +131,9 @@ def _panel_rect_for(poi):
 
     return Rect(px, py, pw, ph)
 
-# ── 简介面板 ──────────────────────────────────────────────
+# ── 简介面板（现代简约卡片风格） ────────────────────────
 def draw_content_panel():
-    """绘制 RPG 风格的简介面板"""
+    """绘制现代卡片风格的简介面板"""
     global panel_close_rect
     if not panel_poi:
         return
@@ -144,34 +143,49 @@ def draw_content_panel():
     panel_rect = _panel_rect_for(panel_poi)
     px, py = panel_rect.x, panel_rect.y
 
-    # 面板阴影
-    shadow = pygame.Surface((pw, ph), pygame.SRCALPHA)
-    shadow.fill((0, 0, 0, 80))
-    screen.surface.blit(shadow, (px + 4, py + 4))
+    # 多层阴影，营造柔和的悬浮感
+    for offset, alpha in [(8, 30), (4, 50), (2, 80)]:
+        shadow = pygame.Surface((pw + offset, ph + offset), pygame.SRCALPHA)
+        shadow.fill((0, 0, 0, 0))
+        r = pygame.Rect(offset, offset, pw, ph)
+        pygame.draw.rect(shadow, (0, 0, 0, alpha), r, border_radius=16)
+        screen.surface.blit(shadow, (px, py))
 
-    # 面板主体
-    draw_rounded_rect(screen.surface, panel_rect, COLOR_PANEL_BG,
-                      radius=10, border_color=COLOR_PANEL_BORDER, border_width=2)
+    # 面板主体：白色圆角卡片
+    card_surf = pygame.Surface((pw, ph), pygame.SRCALPHA)
+    card_surf.fill((0, 0, 0, 0))
+    pygame.draw.rect(card_surf, COLOR_PANEL_BG, (0, 0, pw, ph), border_radius=16)
+    # 细边框
+    pygame.draw.rect(card_surf, COLOR_PANEL_BORDER, (0, 0, pw, ph), 1, border_radius=16)
+    screen.surface.blit(card_surf, (px, py))
 
-    # 装饰顶框
-    top_bar = Rect(px + 2, py + 2, pw - 4, 4)
-    pygame.draw.rect(screen.surface, COLOR_PANEL_BORDER, top_bar, border_radius=2)
+    # 顶部标题栏
+    title_font = _get_font(22)
+    title_color = COLOR_TITLE
+    title_text = panel_poi["name"]
+    # 如果 POI 有图片，标题在图片区域下方；没有图片则顶部标题栏
+    has_img = bool(info["poi_img"] and info["img_dh"] > 0)
 
-    # 标题装饰：小菱形
-    pygame.draw.polygon(screen.surface, COLOR_TITLE,
-                        [(px + 18, py + 22), (px + 24, py + 16),
-                         (px + 30, py + 22), (px + 24, py + 28)])
+    if not has_img:
+        # 无图片：顶部标题 + 一条分隔线
+        screen.draw.text(title_text,
+                         topleft=(px + 24, py + 20),
+                         fontname=FONT_NAME,
+                         fontsize=22, color=title_color)
+        # 底部一条细分隔线
+        line_rect = Rect(px + 24, py + 60, pw - 48, 1)
+        pygame.draw.rect(screen.surface, COLOR_PANEL_BORDER, line_rect)
 
-    # 标题
-    screen.draw.text(panel_poi["name"],
-                     topleft=(px + 38, py + 14),
-                     fontname=FONT_NAME,
-                     fontsize=20, color=COLOR_TITLE)
-
-    # 关闭按钮
-    close_rect = Rect(px + pw - 40, py + 8, 30, 30)
+    # 关闭按钮（圆角灰色圆形）
+    close_rect = Rect(px + pw - 44, py + 12, 32, 32)
     panel_close_rect = close_rect
-    pad = 9
+    # 圆形背景
+    close_bg = pygame.Surface((32, 32), pygame.SRCALPHA)
+    close_bg.fill((0, 0, 0, 0))
+    pygame.draw.circle(close_bg, (0, 0, 0, 18), (16, 16), 14)
+    screen.surface.blit(close_bg, (close_rect.x, close_rect.y))
+    # 叉号
+    pad = 10
     pygame.draw.line(screen.surface, COLOR_CLOSE_BTN,
                      (close_rect.left + pad, close_rect.top + pad),
                      (close_rect.right - pad, close_rect.bottom - pad), 2)
@@ -179,7 +193,7 @@ def draw_content_panel():
                      (close_rect.right - pad, close_rect.top + pad),
                      (close_rect.left + pad, close_rect.bottom - pad), 2)
 
-    _draw_intro_content(px, py, pw, ph, info)
+    _draw_intro_content(px, py, pw, ph, info, has_img)
 
 def _get_font(size):
     font_path = os.path.join("fonts", FONT_NAME)
@@ -229,61 +243,52 @@ def _measure_wrapped_text(text, font, max_width):
                 line = test_line
         if line:
             lines.append(line)
-    line_height = 22
+    line_height = 24
     return lines, len(lines) * line_height, line_height
 
 
 def _panel_info(poi):
     """根据 POI 内容完整计算面板信息（尺寸 + 图片缩放 + 文字行），返回 dict"""
     pw = PANEL_W
-    inner_pad = 30        # 内容区左右内边距
-    font = _get_font(16)
-    text_max_w = pw - inner_pad * 2
-    lines, text_h, line_height = _measure_wrapped_text(poi["intro"], font, text_max_w)
+    padding = 24
+    content_max_w = pw - padding * 2  # 内容区最大宽度（包括图片和文字）
+    text_font = _get_font(16)
+    text_max_w = content_max_w
+    lines, text_h, line_height = _measure_wrapped_text(poi["intro"], text_font, text_max_w)
 
-    # 装饰区：标题栏(50) + 介绍标题(26) + 卷轴上下边距
-    top_decoration = 50 + 26 + 12  # ~88
-    scroll_padding_h = 24
-    gap = 14
-
-    # 计算文字所需的总高度（卷轴内）
-    text_content_h = scroll_padding_h + text_h + scroll_padding_h
-
-    # 先给图片分配空间（尽量大）
-    img_dw, img_dh = 0, 0
     poi_img = _load_poi_image(poi)
-    if poi_img:
-        img_w, img_natural_h = poi_img.get_size()
-        # 先按宽度满配，算出原始高度
-        scale_full_w = min(text_max_w / img_w, 1.0)
-        img_h_full = int(img_natural_h * scale_full_w)
+    has_img = bool(poi_img)
 
-        # 先假设图片用满配高度，算出面板总高度
-        tentative_h = top_decoration + img_h_full + gap + text_content_h + 20
+    # 根据是否有图片计算布局常量
+    title_h = 30        # 标题 + 间距
+    gap_title_text = 4  # 标题与文字的额外间距
 
-        if tentative_h <= HEIGHT - 10:
-            # 放得下 → 用满配图片
-            img_dw = int(img_w * scale_full_w)
-            img_dh = img_h_full
-        else:
-            # 放不下 → 压缩图片，保证文字完整
-            available_for_img = HEIGHT - 10 - top_decoration - gap - text_content_h - 20
-            available_for_img = max(100, available_for_img)  # 最少 100px
-            final_scale = min(text_max_w / img_w, available_for_img / img_natural_h, 1.0)
-            img_dw = int(img_w * final_scale)
-            img_dh = int(img_natural_h * final_scale)
+    # 先算图片高度
+    img_dw, img_dh = 0, 0
+    if has_img:
+        img_w, img_nh = poi_img.get_size()
+        # 按面板内容宽度满配
+        scale_full = min(content_max_w / img_w, 1.0)
+        img_dw = int(img_w * scale_full)
+        img_dh = int(img_nh * scale_full)
 
-    # 最终面板高度
-    total_h = top_decoration + img_dh + (gap if img_dh else 0) + text_content_h + 20
-    # 限制不超出屏幕
+    # 现代布局总高度公式：
+    # 有图片: padding + img_dh + 16(图→标题) + title_h + gap_title_text + text_h + padding
+    # 无图片: 24 + 60(标题栏) + gap_title_text + text_h + padding
+    if has_img:
+        total_h = padding + img_dh + 16 + title_h + gap_title_text + text_h + padding
+    else:
+        total_h = padding + 60 + gap_title_text + text_h + padding
+
+    # 屏幕限制
     total_h = min(total_h, HEIGHT - 10)
-    # 最小高度保证有基本视觉
-    total_h = max(total_h, 280)
+    # 最小高度
+    total_h = max(total_h, 240)
 
     return {
         "pw": pw, "ph": total_h,
         "img_dw": img_dw, "img_dh": img_dh,
-        "text_lines": lines, "font": font,
+        "text_lines": lines, "font": text_font,
         "poi_img": poi_img,
     }
 
@@ -294,50 +299,53 @@ def _compute_panel_size(poi):
     return info["pw"], info["ph"]
 
 
-def _draw_intro_content(px, py, pw, ph, info):
-    """绘制古卷轴风格的简介内容（图片在上，文字在下），使用预计算的 info"""
-    # 先算一下实际可用区域
-    content_top = py + 50 + 26  # 标题栏 + "◇ 介 绍 ◇" 行
-    content_bottom = py + ph - 20
-    content_h = content_bottom - content_top
-
-    scroll_surf = pygame.Surface((pw - 32, content_h), pygame.SRCALPHA)
-    sw, sh = scroll_surf.get_size()
-    pygame.draw.rect(scroll_surf, (60, 52, 40, 230), (0, 0, sw, sh),
-                     border_radius=4)
-    for yy in (4, sh - 5):
-        pygame.draw.rect(scroll_surf, (120, 100, 60, 100),
-                         (10, yy, sw - 20, 2))
-    for xx in (6, sw - 7):
-        pygame.draw.line(scroll_surf, (120, 100, 60, 60),
-                         (xx, 6), (xx, sh - 6))
-    screen.surface.blit(scroll_surf, (px + 16, content_top))
-
-    screen.draw.text("◇ 介 绍 ◇",
-                     center=(px + pw // 2, py + 56),
-                     fontname=FONT_NAME,
-                     fontsize=13, color=(180, 160, 100))
+def _draw_intro_content(px, py, pw, ph, info, has_img):
+    """绘制现代简约内容区：图片+标题+文字，干净无装饰"""
+    padding = 24
 
     font = info["font"]
-    text_color = (230, 215, 180)
-    text_x = px + 30
+    text_color = COLOR_TEXT
 
-    # ── 先画图片（使用预计算的尺寸） ──
-    text_y = content_top + 12
-    poi_img = info["poi_img"]
-    img_dw = info["img_dw"]
-    img_dh = info["img_dh"]
-    if poi_img and img_dh > 0:
-        scaled = pygame.transform.smoothscale(poi_img, (img_dw, img_dh))
-        img_x = px + (pw - img_dw) // 2
-        screen.surface.blit(scaled, (img_x, text_y))
-        text_y = text_y + img_dh + 14
+    cur_y = py + padding
 
-    # ── 再画文字（使用预计算的换行行，完整显示） ──
-    line_height = 22
+    # ── 有图片时：图片铺满顶部圆角，标题在图片下方 ──
+    if has_img:
+        poi_img = info["poi_img"]
+        img_dw = info["img_dw"]
+        img_dh = info["img_dh"]
+
+        # 图片区域（从面板顶部延伸，宽度撑满面板）
+        max_w = pw - padding * 2
+        # 重新按面板宽度适配图片
+        nat_w, nat_h = poi_img.get_size()
+        scale = min(max_w / nat_w, 1.0)
+        final_dw = int(nat_w * scale)
+        final_dh = int(nat_h * scale)
+
+        scaled = pygame.transform.smoothscale(poi_img, (final_dw, final_dh))
+        img_x = px + (pw - final_dw) // 2
+        # 图片顶部贴紧面板顶，有圆角溢出做遮罩
+        screen.surface.blit(scaled, (img_x, cur_y))
+        cur_y += final_dh + 16  # 图片与标题间距 16px
+
+        # 标题（深色，无装饰）
+        screen.draw.text(panel_poi["name"],
+                         topleft=(px + padding, cur_y),
+                         fontname=FONT_NAME,
+                         fontsize=22, color=COLOR_TITLE)
+        cur_y += 30  # 标题高度约 26px + 间距 4px
+    else:
+        # 无图片：cur_y 在标题下方（已预留 60px 空间）
+        cur_y = py + padding + 60 - 22  # 从标题栏下方开始写文字
+
+    cur_y += 4  # 一点额外间距
+
+    # ── 绘制文字 ──
+    line_height = 24
+    text_x = px + padding
     for line in info["text_lines"]:
-        _render_text_line(font, line, text_x, text_y, text_color)
-        text_y += line_height
+        _render_text_line(font, line, text_x, cur_y, text_color)
+        cur_y += line_height
 
 # ── 逻辑更新 ──────────────────────────────────────────────
 def update():
